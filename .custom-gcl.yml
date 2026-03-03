@@ -1,0 +1,7 @@
+version: v2.10.1
+plugins:
+
+  # a plugin from local source
+  - module: 'github.com/andreborch/log-linter'
+    import: 'github.com/andreborch/log-linter/pkg/analyzer'
+    path: ./
