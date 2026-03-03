@@ -12,7 +12,7 @@
 | `language` | Язык сообщений логгера должен соответствовать настройке `lang` (по умолчанию `en`) |
 | `specialchars` | Запрещает спецсимволы в сообщениях (кроме `spec_char_exceptions`) |
 | `lowercase` | Сообщения логгера должны начинаться со строчной буквы |
-| `sensitive` | Запрещает ключевые слова из `sensitive_bans` (пароли, токены и т.д.) |
+| `sensitive` | Запрещает ключевые слова и паттерны токенов в сообщениях логгера |
 
 Поддерживаемые логгеры по умолчанию:
 - `log/slog`
@@ -35,20 +35,20 @@
 log-linter/
 ├── cmd/
 │   └── loglint/
-│       └── main.go          # standalone-бинарь (singlechecker)
+│       └── main.go              # standalone-бинарь (singlechecker)
 ├── internal/
-│   ├── analyzers/           # AST-анализ
-│   ├── rules/               # Правила: language, sensitive, specialchars, lowercase
+│   ├── rules/                   # Правила: language, sensitive, specialchars, lowercase
 │   └── utils/
-│       ├── send_reports.go  # Отправка диагностик в analysis.Pass
-│       └── is_logger.go     # Определение вызовов логгера
+│       ├── send_reports.go      # Отправка диагностик в analysis.Pass
+│       └── is_logger.go         # Определение вызовов логгера
 ├── pkg/
-│   ├── settings.go          # Структура LinterSettings и DefaultSettings()
-│   ├── report.go            # Структура Report (Pos, Length, Message)
+│   ├── settings.go              # Структура LinterSettings и DefaultSettings()
+│   ├── report.go                # Структура Report (Pos, Length, Message)
+│   ├── sensitive_def.go         # Дефолтные бан-листы слов и regex-паттернов токенов
 │   └── analyzer/
-│       └── analyzer.go      # Плагин: New(), BuildAnalyzers(), run()
-├── .custom-gcl.yml          # Конфиг сборки кастомного golangci-lint
-├── .golangci.yml            # Конфиг запуска линтера
+│       └── analyzer.go          # Плагин: New(), BuildAnalyzers(), run()
+├── .custom-gcl.yml              # Конфиг сборки кастомного golangci-lint
+├── .golangci.yml                # Конфиг запуска линтера
 └── go.mod
 ```
 
@@ -117,9 +117,11 @@ plugins:
     path: ./   # путь к локальному исходнику плагина
 ```
 
-- `module` — Go-модуль плагина (из `go.mod` вашего линтера)
-- `import` — пакет, в котором вызывается `register.Plugin(...)` (файл `pkg/analyzer/analyzer.go`)
-- `path: ./` — собирается из локальных исходников; замените на версию тега (`version: v1.0.0`) при публикации
+| Поле | Описание |
+|---|---|
+| `module` | Go-модуль плагина (из `go.mod`) |
+| `import` | Пакет с `func init()` где вызывается `register.Plugin(...)` |
+| `path: ./` | Сборка из локальных исходников. При публикации замените на `version: v1.0.0` |
 
 ### Шаг 3: Соберите кастомный golangci-lint
 
@@ -161,16 +163,15 @@ linters:
             - "lowercase"
             - "sensitive"
 
-          # Заблокированные слова (sensitive-правило)
-          # Пример: ["password", "token", "secret"]
+          # Дополнительные заблокированные слова (sensitive-правило)
+          # Дефолтный бан-лист встроен и всегда активен (см. раздел ниже)
           sensitive_bans: []
 
           # Исключения для спецсимволов (specialchars-правило)
-          # Символы, которые разрешены в сообщениях логгера
           spec_char_exceptions: ":_=-/"
 
           # Исключения для sensitive-правила
-          # Слова, которые не считаются sensitive несмотря на sensitive_bans
+          # Слова из этого списка не будут считаться sensitive
           sens_exceptions: []
 
           # Пакеты, вызовы из которых считаются логгером
@@ -212,32 +213,34 @@ linters:
 
 ### Отключить отдельные правила
 
-Уберите ненужные правила из `enabled_rules`:
-
 ```yaml
 settings:
   enabled_rules:
-    - "lowercase"    # только проверка регистра
-    # - "language"   # отключено
-    # - "sensitive"  # отключено
+    - "lowercase"      # только проверка регистра
+    # - "language"     # отключено
+    # - "sensitive"    # отключено
     # - "specialchars" # отключено
 ```
 
 ### Настройка sensitive-правила
 
+Правило `sensitive` работает в два этапа:
+
+1. **Дефолтный бан-лист** — всегда активен, не требует настройки (см. раздел ниже)
+2. **Кастомный бан-лист** — задаётся через `sensitive_bans` в `.golangci.yml`
+
 ```yaml
 settings:
   enabled_rules:
     - "sensitive"
+  # Дополнительные слова поверх дефолтного бан-листа
   sensitive_bans:
-    - "password"
-    - "passwd"
-    - "token"
-    - "secret"
-    - "api_key"
-    - "private_key"
+    - "internal_key"
+    - "db_password"
+  # Исключения — слова, которые НЕ считаются sensitive
   sens_exceptions:
-    - "token_type"   # это слово не будет считаться sensitive
+    - "token_type"
+    - "session_name"
 ```
 
 ### Настройка specialchars-правила
@@ -246,7 +249,8 @@ settings:
 settings:
   enabled_rules:
     - "specialchars"
-  spec_char_exceptions: ":_=-/"  # эти символы разрешены
+  # Символы, разрешённые в сообщениях логгера
+  spec_char_exceptions: ":_=-/"
 ```
 
 ### Добавить свой логгер
@@ -256,14 +260,88 @@ settings:
   logger_packages:
     - "log/slog"
     - "go.uber.org/zap"
-    - "github.com/sirupsen/logrus"   # добавить logrus
+    - "github.com/sirupsen/logrus"
   logger_funcs:
     - "Debug"
     - "Info"
     - "Warn"
     - "Error"
     - "Log"
-    - "WithField"                    # добавить метод logrus
+    - "WithField"
+```
+
+---
+
+## Дефолтные значения sensitive-правила
+
+Правило `sensitive` содержит два встроенных списка, которые **всегда активны**, за исключением добавления в исключения.
+
+### Дефолтный бан-лист слов (`DefaultSensBans`)
+
+Следующие слова запрещены в сообщениях логгера, проверяются по наличию ключевого слова + ":", "=", "is", без них проблем не возникнет:
+
+| Категория | Слова |
+|---|---|
+| **Пароли** | `password`, `passwd`, `pwd`, `pass` |
+| **PIN / OTP** | `pin`, `pincode`, `pin_code`, `otp`, `one_time_password`, `mfa`, `totp`, `2fa` |
+| **Секреты** | `secret`, `token` |
+| **API ключи** | `api_key`, `apikey`, `api-key`, `api_token`, `apitoken`, `api-token` |
+| **Токены доступа** | `access_token`, `access_key`, `auth_token`, `auth_key` |
+| **Учётные данные** | `credentials` |
+| **Банковские данные** | `credit_card`, `creditcard`, `card_number`, `cardnumber`, `cvv`, `cvc` |
+| **Персональные данные** | `ssn`, `social_security` |
+| **Криптография** | `private_key`, `privatekey`, `secret_key`, `secretkey`, `encryption_key` |
+| **Авторизация** | `bearer`, `authorization` |
+| **Сессии** | `session_id`, `sessionid`, `cookie` |
+| **JWT / OAuth** | `jwt`, `oauth_token`, `refresh_token` |
+| **Клиентские данные** | `client_secret`, `client_id` |
+| **AWS** | `aws_access_key`, `aws_secret_key`, `aws_session_token` |
+
+### Дефолтные паттерны токенов (`DefaultTokensPatterns`)
+
+Помимо слов, линтер также проверяет сообщения на наличие реальных секретов по regex-паттернам:
+
+| Сервис / Тип | Паттерн |
+|---|---|
+| **GitHub токены** | `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_` + 36 символов |
+| **GitLab токены** | `glpat-` + 20+ символов |
+| **AWS Access Key** | `AKIA`, `ABIA`, `ACCA`, `ASIA` + 16 символов |
+| **OpenAI API key** | `sk-` + 48 символов |
+| **Stripe keys** | `sk_live_`, `pk_live_`, `rk_live_` + 24+ символов |
+| **Square tokens** | `sq0csp-`, `sq0atp-` |
+| **Slack tokens** | `xoxb-`, `xoxp-`, `xoxa-`, `xoxr-` |
+| **SendGrid API key** | `SG.` + формат |
+| **JWT токены** | `eyJhbGciOi...` |
+| **Bearer токены** | `Bearer <token>` |
+| **Hex-секреты** | `secret=<32-64 hex символа>` |
+| **Base64-секреты** | `token=<40+ base64 символа>` |
+| **Heroku API key** | UUID формат |
+| **Google API key** | `AIza` + 35 символов |
+| **Google OAuth** | `ya29.` |
+| **Twilio API key** | `SK` + 32 hex символа |
+| **Mailgun API key** | `key-` + 32 символа |
+| **NPM токен** | `npm_` + 36 символов |
+| **PyPI токен** | `pypi-` + 100+ символов |
+| **Telegram Bot** | `<id>:<35 символов>` |
+| **Discord Bot** | Специфичный формат |
+| **Azure Storage Key** | `DefaultEndpointsProtocol=https;...` |
+| **RSA приватный ключ** | `-----BEGIN RSA PRIVATE KEY-----` |
+| **SSH приватный ключ** | `-----BEGIN OPENSSH PRIVATE KEY-----` |
+| **PGP приватный ключ** | `-----BEGIN PGP PRIVATE KEY BLOCK-----` |
+
+> Если в сообщении логгера обнаружен любой из этих паттернов — это нарушение правила `sensitive`.
+
+### Пример срабатывания
+
+```go
+// ❌ Нарушение — слово "password" в сообщении
+slog.Info("user password updated")
+
+// ❌ Нарушение — реальный GitHub токен в сообщении
+slog.Debug("token: ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8")
+
+// ✅ Корректно
+slog.Info("user credentials updated successfully")
 ```
 
 ---
@@ -368,22 +446,25 @@ go test -cover ./...
 вызов логгера в коде
         │
         ▼
-  utils.IsLogger()          # определяет, является ли вызов логгером
-        │                   # по logger_packages и logger_funcs из настроек
+  utils.IsLogger()            # определяет вызов логгера
+        │                     # по logger_packages и logger_funcs
         ▼
-   rules.LangIsCorrect()    # правило language
-   rules.HasSensitiveData() # правило sensitive
-   rules.HasSpecialChar()   # правило specialchars
-   rules.CheckLowerCase()   # правило lowercase
+   rules.LangIsCorrect()      # правило language
+   rules.HasSensitiveData()   # правило sensitive
+        │                     # ├─ DefaultSensBans() — встроенный бан-лист слов
+        │                     # ├─ DefaultTokensPatterns() — regex паттерны токенов
+        │                     # └─ sensitive_bans из настроек — кастомные слова
+   rules.HasSpecialChar()     # правило specialchars
+   rules.CheckLowerCase()     # правило lowercase
         │
         ▼
   []pkg.Report{Pos, Length, Message}
         │
         ▼
-  utils.SendReports()       # Report → analysis.Diagnostic{Pos, End}
-        │                   # End = Pos + Length (подчёркивание в IDE)
+  utils.SendReports()         # Report → analysis.Diagnostic{Pos, End}
+        │                     # End = Pos + Length (подчёркивание в IDE)
         ▼
-  analysis.Pass.Report()    # диагностика уходит в golangci-lint / go vet / IDE
+  analysis.Pass.Report()      # диагностика → golangci-lint / go vet / IDE
 ```
 
 ---
@@ -392,12 +473,13 @@ go test -cover ./...
 
 | Проблема | Решение |
 |---|---|
-| `loglint: not found` | Убедитесь, что в `.golangci.yml` имя линтера `loglint` (из `register.Plugin("loglint", ...)`) |
+| `loglint: not found` | Убедитесь, что имя линтера в `.golangci.yml` — `loglint` (из `register.Plugin("loglint", ...)`) |
 | Кастомный бинарь не работает | Пересоберите: `golangci-lint custom -v` |
 | IDE не подсвечивает | Проверьте `go.alternateTools` в `settings.json` |
 | `plugin: not registered` | Убедитесь, что `import` в `.custom-gcl.yml` указывает на пакет с `func init()` |
-| Правила не применяются | Проверьте, что правило добавлено в `enabled_rules` в `.golangci.yml` |
-| `sensitive_bans: []` не работает | Список пуст — добавьте слова: `["password", "token"]` |
+| Правила не применяются | Проверьте, что правило добавлено в `enabled_rules` |
+| Ложные срабатывания sensitive | Добавьте слово в `sens_exceptions` |
+| Хочу добавить своё sensitive-слово | Добавьте в `sensitive_bans` в `.golangci.yml` |
 
 ---
 
