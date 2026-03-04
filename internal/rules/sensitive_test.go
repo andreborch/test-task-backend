@@ -510,7 +510,6 @@ func TestArgHasSensitive_CaseInsensitivity(t *testing.T) {
 }
 
 func TestArgHasSensitive_NilBlockedAndExceptions(t *testing.T) {
-	// Should not panic with nil slices
 	has, idx, length := argHasSensitive("just a normal string", nil, nil)
 	if has {
 		t.Errorf("expected no sensitive data, got has=true, idx=%d, length=%d", idx, length)
