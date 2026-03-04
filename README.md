@@ -66,14 +66,8 @@ go mod tidy
 
 Standalone-режим позволяет запускать линтер напрямую через `go vet`.
 
-**Windows:**
-```powershell
-go build -o loglint.exe ./cmd/loglint
-```
-
-**Linux / macOS:**
 ```bash
-go build -o loglint ./cmd/loglint
+make build
 ```
 
 ### Запуск standalone-бинаря
