@@ -67,6 +67,7 @@ func (plug *LogPlugin) run(pass *analysis.Pass) (any, error) {
 				}
 
 				reports := []pkg.Report{}
+
 				rules.LangIsCorrect(args, &reports, settings.Language)
 				rules.HasSensitiveData(args, &reports, settings.BlockedSensitive, settings.SensitiveExceptions)
 				rules.HasSpecialChar(args, &reports, settings.SpecCharsExceptions)

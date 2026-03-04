@@ -90,6 +90,8 @@ func HasSpecialChar(args []ast.Expr, reports *[]pkg.Report, exceptions string) {
 			}
 		} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
 			checkStringSpecials(basicLit, exceptions, reports)
+		} else if fun, ok := arg.(*ast.CallExpr); ok {
+			HasSpecialChar(fun.Args, reports, exceptions)
 		}
 	}
 }

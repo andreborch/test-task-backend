@@ -19,7 +19,7 @@ func DefaultSettings() LinterSettings {
 			"sensitive",
 		},
 		BlockedSensitive:    []string{},
-		SpecCharsExceptions: ":_=-/",
+		SpecCharsExceptions: ":_=-/%@",
 		SensitiveExceptions: []string{},
 		LoggerPackages: []string{
 			"log/slog",

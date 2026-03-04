@@ -10,48 +10,46 @@ import (
 	"github.com/andreborch/log-linter/pkg"
 )
 
-// argHasSensitive checks whether the provided string contains sensitive data.
+// argHasSensitive checks whether a given string contains sensitive data.
 //
-// Detection order:
-//  1. Built-in sensitive keywords from pkg.DefaultSensBans(), combined with
-//     additional separators (":", "=", "is"), unless explicitly listed in exceptions.
-//  2. Built-in token regex patterns from pkg.DefaultTokensPatterns().
-//  3. Custom blocked substrings passed via blocked, unless listed in exceptions.
+// It performs detection in three sequential stages:
+//  1. Default sensitive keyword bans: iterates over pkg.DefaultSensBans() and
+//     checks for each keyword followed by built-in separators (":", "=", "is", "-").
+//     Also detects keywords appearing at the end of the string.
+//  2. Default token regex patterns: matches against pkg.DefaultTokensPatterns()
+//     to catch common secret/token formats (e.g. API keys, JWTs).
+//  3. Custom blocked substrings: checks each entry in blocked for an exact
+//     substring match.
 //
-// It returns:
-//   - has: true when sensitive content is found
-//   - idx: zero-based byte index of the first match in data (or -1 if not found)
-//   - length: matched fragment length (or -1 if not found)
+// Entries listed in exceptions are skipped during stages 1 and 3.
 //
-// Note: matching is based on simple substring search (for keyword checks) and regex
-// search (for token patterns).
-
-// checkStringSensitive inspects a string literal AST node for sensitive content.
+// Parameters:
+//   - data:       the input string to inspect (compared case-insensitively).
+//   - blocked:    additional substrings to treat as sensitive.
+//   - exceptions: substrings to exclude from detection.
 //
-// If sensitive data is found, it appends a pkg.Report entry to report with:
-//   - Pos set to the literal position offset by the match index
-//   - Length set to the matched fragment length
-//   - Message set to "Sensitive data detected"
-
-// HasSensitiveData scans logging argument expressions for sensitive string content.
-//
-// It supports:
-//   - direct string literals (*ast.BasicLit with token.STRING)
-//   - concatenated string expressions (*ast.BinaryExpr), flattened via
-//     utils.FlattenBinaryExpr and checked part-by-part.
-//
-// For each detected match, it appends a pkg.Report to reports.
+// Returns:
+//   - has:    true if a sensitive fragment was found.
+//   - idx:    byte offset of the match within the lowercased data, or -1.
+//   - length: byte length of the matched keyword/pattern, or -1.
 func argHasSensitive(data string, blocked []string, exceptions []string) (has bool, idx int, length int) {
-	default_additional := []string{":", "=", "is"}
+	default_additional := []string{":", "=", "is", "-"}
+	data = strings.ToLower(data)
 
 	for _, block := range pkg.DefaultSensBans() {
 		for _, add := range default_additional {
 			block_additional := block + add
-			if utils.Contains(exceptions, block_additional) {
+			if utils.Contains(exceptions, block) {
 				continue
 			}
 			idx = strings.Index(data, block_additional)
 			if idx != -1 {
+				return true, idx, len(block)
+			}
+
+			trimmed := strings.TrimSpace(data)
+			idx = strings.Index(trimmed, block) // checking if end of string, possible sensitive data after that arg
+			if idx != -1 && idx+1+len(block) != len(trimmed) {
 				return true, idx, len(block)
 			}
 		}
@@ -132,6 +130,8 @@ func HasSensitiveData(args []ast.Expr, reports *[]pkg.Report, blocked []string, 
 			}
 		} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
 			checkStringSensitive(basicLit, blocked, exceptions, reports)
+		} else if fun, ok := arg.(*ast.CallExpr); ok {
+			HasSensitiveData(fun.Args, reports, blocked, exceptions)
 		}
 	}
 }

@@ -89,6 +89,8 @@ func LangIsCorrect(args []ast.Expr, reports *[]pkg.Report, lang string) {
 			}
 		} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
 			checkStringLang(basicLit, lang, reports)
+		} else if fun, ok := arg.(*ast.CallExpr); ok {
+			LangIsCorrect(fun.Args, reports, lang)
 		}
 	}
 }

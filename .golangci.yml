@@ -18,7 +18,7 @@ linters:
             - "lowercase"
             - "sensitive"
           sensitive_bans: []
-          spec_char_exceptions: ":"
+          spec_char_exceptions: ":_=-/@%"
           sens_exceptions: []
           logger_packages:
             - "log/slog"

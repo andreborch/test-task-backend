@@ -56,5 +56,7 @@ func CheckLowerCase(args []ast.Expr, reports *[]pkg.Report) {
 		checkStringLowercase(basicPart, reports)
 	} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
 		checkStringLowercase(basicLit, reports)
+	} else if fun, ok := arg.(*ast.CallExpr); ok {
+		CheckLowerCase(fun.Args, reports)
 	}
 }
