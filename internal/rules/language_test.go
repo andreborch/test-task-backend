@@ -171,8 +171,8 @@ func TestCheckStringLang(t *testing.T) {
 				Kind:     token.STRING,
 				Value:    tt.value,
 			}
-			var reports []pkg.Report
-			checkStringLang(lit, tt.lang, &reports)
+
+			reports := checkStringLang(lit, tt.lang)
 
 			if tt.expectReport {
 				if len(reports) != 1 {
@@ -203,8 +203,8 @@ func TestCheckStringLangOnlyOneReport(t *testing.T) {
 		Kind:     token.STRING,
 		Value:    `"абвгд"`,
 	}
-	var reports []pkg.Report
-	checkStringLang(lit, "en", &reports)
+
+	reports := checkStringLang(lit, "en")
 	if len(reports) != 1 {
 		t.Errorf("expected exactly 1 report for multiple invalid chars, got %d", len(reports))
 	}

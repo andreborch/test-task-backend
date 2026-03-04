@@ -54,11 +54,12 @@ func isLetterFromLanguage(r rune, lang string) bool {
 //
 // On the first invalid letter, it appends a pkg.Report entry with the literal
 // position, its raw length, and a message indicating the required language.
-func checkStringLang(basicLit *ast.BasicLit, lang string, report *[]pkg.Report) {
+func checkStringLang(basicLit *ast.BasicLit, lang string) []pkg.Report {
+	reports := []pkg.Report{}
 	data := basicLit.Value
 	for _, symb := range data {
 		if !isLetterFromLanguage(symb, lang) {
-			*report = append(*report, pkg.Report{
+			reports = append(reports, pkg.Report{
 				Pos:     basicLit.Pos(),
 				Length:  len(data),
 				Message: "Log message language must be " + strings.ToUpper(lang),
@@ -66,6 +67,7 @@ func checkStringLang(basicLit *ast.BasicLit, lang string, report *[]pkg.Report) 
 			break
 		}
 	}
+	return reports
 }
 
 // LangIsCorrect checks string arguments in args against the expected language lang
@@ -85,10 +87,12 @@ func LangIsCorrect(args []ast.Expr, reports *[]pkg.Report, lang string) {
 				if !ok || basicPart.Kind != token.STRING { // skip eveything non string
 					continue
 				}
-				checkStringLang(basicPart, lang, reports)
+				lang_reports := checkStringLang(basicPart, lang)
+				*reports = append(*reports, lang_reports...)
 			}
 		} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
-			checkStringLang(basicLit, lang, reports)
+			lang_reports := checkStringLang(basicLit, lang)
+			*reports = append(*reports, lang_reports...)
 		} else if fun, ok := arg.(*ast.CallExpr); ok {
 			LangIsCorrect(fun.Args, reports, lang)
 		}

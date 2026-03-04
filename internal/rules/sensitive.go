@@ -84,16 +84,19 @@ func argHasSensitive(data string, blocked []string, exceptions []string) (has bo
 //   - Pos: literal start position shifted by the match byte index
 //   - Length: matched fragment length
 //   - Message: "Sensitive data detected"
-func checkStringSensitive(basicLit *ast.BasicLit, blocked []string, exceptions []string, report *[]pkg.Report) {
+func checkStringSensitive(basicLit *ast.BasicLit, blocked []string, exceptions []string) []pkg.Report {
+	report := []pkg.Report{}
+
 	data := basicLit.Value
 	has, idx, length := argHasSensitive(data, blocked, exceptions)
 	if has {
-		*report = append(*report, pkg.Report{
+		report = append(report, pkg.Report{
 			Pos:     basicLit.Pos() + token.Pos(idx),
 			Length:  length,
 			Message: "Sensitive data detected",
 		})
 	}
+	return report
 }
 
 // HasSensitiveData scans logging call arguments and reports sensitive string content.
@@ -126,10 +129,12 @@ func HasSensitiveData(args []ast.Expr, reports *[]pkg.Report, blocked []string, 
 				if !ok || basicPart.Kind != token.STRING { // skip eveything non string
 					continue
 				}
-				checkStringSensitive(basicPart, blocked, exceptions, reports)
+				sens_reports := checkStringSensitive(basicPart, blocked, exceptions)
+				*reports = append(*reports, sens_reports...)
 			}
 		} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
-			checkStringSensitive(basicLit, blocked, exceptions, reports)
+			sens_reports := checkStringSensitive(basicLit, blocked, exceptions)
+			*reports = append(*reports, sens_reports...)
 		} else if fun, ok := arg.(*ast.CallExpr); ok {
 			HasSensitiveData(fun.Args, reports, blocked, exceptions)
 		}

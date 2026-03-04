@@ -126,8 +126,8 @@ func TestCheckStringSpecials(t *testing.T) {
 				Kind:     token.STRING,
 				Value:    tt.value,
 			}
-			var reports []pkg.Report
-			checkStringSpecials(lit, tt.exceptions, &reports)
+
+			reports := checkStringSpecials(lit, tt.exceptions)
 
 			if len(reports) != tt.wantCount {
 				t.Errorf("checkStringSpecials() got %d reports, want %d", len(reports), tt.wantCount)
@@ -148,8 +148,8 @@ func TestCheckStringSpecials_Position(t *testing.T) {
 		Kind:     token.STRING,
 		Value:    `"a!b"`,
 	}
-	var reports []pkg.Report
-	checkStringSpecials(lit, "", &reports)
+
+	reports := checkStringSpecials(lit, "")
 
 	if len(reports) != 1 {
 		t.Fatalf("expected 1 report, got %d", len(reports))

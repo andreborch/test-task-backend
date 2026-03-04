@@ -23,16 +23,18 @@ func isLetterLower(r rune) bool {
 // checkStringLowercase validates that the first character inside a string literal
 // starts with a lowercase letter. If it does not, it appends a report entry with
 // the position, literal length, and a diagnostic message.
-func checkStringLowercase(basicLit *ast.BasicLit, report *[]pkg.Report) {
+func checkStringLowercase(basicLit *ast.BasicLit) []pkg.Report {
+	reports := []pkg.Report{}
 	data := basicLit.Value
 	symb := []rune(data)[1] // skip quotes
 	if !isLetterLower(symb) {
-		*report = append(*report, pkg.Report{
+		reports = append(reports, pkg.Report{
 			Pos:     basicLit.Pos() + token.Pos(1),
 			Length:  len(data),
 			Message: "Log message should start with lowercase",
 		})
 	}
+	return reports
 }
 
 // CheckLowerCase inspects the first logging argument and verifies lowercase
@@ -53,9 +55,11 @@ func CheckLowerCase(args []ast.Expr, reports *[]pkg.Report) {
 		if !ok || basicPart.Kind != token.STRING { // skip eveything non string
 			return
 		}
-		checkStringLowercase(basicPart, reports)
+		lower_reports := checkStringLowercase(basicPart)
+		*reports = append(*reports, lower_reports...)
 	} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
-		checkStringLowercase(basicLit, reports)
+		lower_reports := checkStringLowercase(basicLit)
+		*reports = append(*reports, lower_reports...)
 	} else if fun, ok := arg.(*ast.CallExpr); ok {
 		CheckLowerCase(fun.Args, reports)
 	}

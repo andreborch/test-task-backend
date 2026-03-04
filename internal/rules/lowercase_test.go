@@ -61,8 +61,8 @@ func TestCheckStringLowercase(t *testing.T) {
 				Kind:     token.STRING,
 				Value:    tt.value,
 			}
-			var reports []pkg.Report
-			checkStringLowercase(lit, &reports)
+
+			reports := checkStringLowercase(lit)
 			if len(reports) != tt.expectCount {
 				t.Errorf("checkStringLowercase(%q) produced %d reports, want %d", tt.value, len(reports), tt.expectCount)
 			}
@@ -248,8 +248,8 @@ func TestCheckStringLowercase_ReportPosition(t *testing.T) {
 		Kind:     token.STRING,
 		Value:    `"World"`,
 	}
-	var reports []pkg.Report
-	checkStringLowercase(lit, &reports)
+
+	reports := checkStringLowercase(lit)
 	if len(reports) != 1 {
 		t.Fatalf("expected 1 report, got %d", len(reports))
 	}

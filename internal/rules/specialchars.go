@@ -51,13 +51,14 @@ func isSpecialChar(r rune, exceptions string) bool {
 // the function appends a single pkg.Report to report with the rune position in source code
 // and the message: "Log message shouldn't contain special chars or emoji".
 // Scanning stops after the first violation.
-func checkStringSpecials(basicLit *ast.BasicLit, exceptions string, report *[]pkg.Report) {
+func checkStringSpecials(basicLit *ast.BasicLit, exceptions string) []pkg.Report {
+	reports := []pkg.Report{}
 	data := basicLit.Value
 	data = data[1 : len(data)-1]
 
 	for idx, symb := range data {
 		if isSpecialChar(symb, exceptions) {
-			*report = append(*report, pkg.Report{
+			reports = append(reports, pkg.Report{
 				Pos:     basicLit.Pos() + token.Pos(idx+1),
 				Length:  0,
 				Message: "Log message shouldn't contain special chars or emoji",
@@ -65,6 +66,7 @@ func checkStringSpecials(basicLit *ast.BasicLit, exceptions string, report *[]pk
 			break
 		}
 	}
+	return reports
 }
 
 // HasSpecialChar inspects argument expressions and reports string literals
@@ -86,10 +88,12 @@ func HasSpecialChar(args []ast.Expr, reports *[]pkg.Report, exceptions string) {
 				if !ok || basicPart.Kind != token.STRING { // skip eveything non string
 					continue
 				}
-				checkStringSpecials(basicPart, exceptions, reports)
+				spec_reports := checkStringSpecials(basicPart, exceptions)
+				*reports = append(*reports, spec_reports...)
 			}
 		} else if basicLit, ok := arg.(*ast.BasicLit); ok && basicLit.Kind == token.STRING {
-			checkStringSpecials(basicLit, exceptions, reports)
+			spec_reports := checkStringSpecials(basicLit, exceptions)
+			*reports = append(*reports, spec_reports...)
 		} else if fun, ok := arg.(*ast.CallExpr); ok {
 			HasSpecialChar(fun.Args, reports, exceptions)
 		}
