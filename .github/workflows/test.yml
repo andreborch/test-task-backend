@@ -27,9 +27,9 @@ jobs:
       - name: Check if builds successfully
         run: go build -o loglint ./cmd/loglint
       - name: Test rules with Go
-        run: go test -json ./internal/rules > TestRules-${{ matrix.go-version }}.json
+        run: go test ./internal/rules
       - name: Test analyzer with Go
-        run: go test -json ./pkg/analyzer > TestAnalyzer-${{ matrix.go-version }}.json
+        run: go test ./pkg/analyzer
       - name: Upload Go test results
         uses: actions/upload-artifact@v4
         with:
