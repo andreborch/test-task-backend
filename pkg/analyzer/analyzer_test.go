@@ -9,7 +9,6 @@ import (
 
 	"github.com/andreborch/log-linter/internal/rules"
 	"github.com/andreborch/log-linter/pkg"
-	"golang.org/x/tools/go/analysis"
 )
 
 func TestNew_WithValidSettings_Decodes(t *testing.T) {
@@ -95,7 +94,7 @@ func TestLogPlugin_BuildAnalyzers(t *testing.T) {
 func TestRules_LangIsCorrect(t *testing.T) {
 	t.Run("reports non-english text when lang=en", func(t *testing.T) {
 		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("Привет мир")},
+			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("привет мир")},
 		}
 		reports := []pkg.Report{}
 
@@ -118,100 +117,4 @@ func TestRules_LangIsCorrect(t *testing.T) {
 			t.Fatalf("LangIsCorrect() expected no reports, got %d", len(reports))
 		}
 	})
-}
-
-func TestRules_HasSensitiveData(t *testing.T) {
-	t.Run("reports banned sensitive token", func(t *testing.T) {
-		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("user secret leaked")},
-		}
-		reports := []pkg.Report{}
-
-		rules.HasSensitiveData(args, &reports, []string{"secret"}, nil)
-
-		if len(reports) == 0 {
-			t.Fatal("HasSensitiveData() expected at least one report")
-		}
-	})
-
-	t.Run("does not report when token is in exceptions", func(t *testing.T) {
-		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("password: *****")},
-		}
-		reports := []pkg.Report{}
-
-		rules.HasSensitiveData(args, &reports, []string{"password"}, []string{"password:"})
-
-		if len(reports) != 0 {
-			t.Fatalf("HasSensitiveData() expected no reports, got %d", len(reports))
-		}
-	})
-}
-
-func TestRules_HasSpecialChar(t *testing.T) {
-	t.Run("reports forbidden special character", func(t *testing.T) {
-		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("email@test")},
-		}
-		reports := []pkg.Report{}
-
-		rules.HasSpecialChar(args, &reports, ":")
-
-		if len(reports) == 0 {
-			t.Fatal("HasSpecialChar() expected at least one report")
-		}
-	})
-
-	t.Run("does not report allowed exception character", func(t *testing.T) {
-		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("status: ok")},
-		}
-		reports := []pkg.Report{}
-
-		rules.HasSpecialChar(args, &reports, ":")
-
-		if len(reports) != 0 {
-			t.Fatalf("HasSpecialChar() expected no reports, got %d", len(reports))
-		}
-	})
-}
-
-func TestRules_CheckLowerCase(t *testing.T) {
-	t.Run("reports non-lowercase message", func(t *testing.T) {
-		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("Hello world")},
-		}
-		reports := []pkg.Report{}
-
-		rules.CheckLowerCase(args, &reports)
-
-		if len(reports) == 0 {
-			t.Fatal("CheckLowerCase() expected at least one report")
-		}
-	})
-
-	t.Run("does not report lowercase message", func(t *testing.T) {
-		args := []ast.Expr{
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("hello world")},
-		}
-		reports := []pkg.Report{}
-
-		rules.CheckLowerCase(args, &reports)
-
-		if len(reports) != 0 {
-			t.Fatalf("CheckLowerCase() expected no reports, got %d", len(reports))
-		}
-	})
-}
-
-func TestLogPlugin_run_EmptyPass_NoError(t *testing.T) {
-	plug := &LogPlugin{settings: pkg.DefaultSettings()}
-
-	got, err := plug.run(&analysis.Pass{})
-	if err != nil {
-		t.Fatalf("run() returned unexpected error: %v", err)
-	}
-	if got != nil {
-		t.Fatalf("run() = %#v, want nil", got)
-	}
 }

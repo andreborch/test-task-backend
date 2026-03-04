@@ -59,11 +59,7 @@ func DefaultSensBans() []string {
 func DefaultTokensPatterns() []string {
 	return []string{
 		// GitHub tokens
-		`ghp_[0-9a-zA-Z]{36}`,
-		`gho_[0-9a-zA-Z]{36}`,
-		`ghu_[0-9a-zA-Z]{36}`,
-		`ghs_[0-9a-zA-Z]{36}`,
-		`ghr_[0-9a-zA-Z]{36}`,
+		`gh[pousr]_[0-9a-zA-Z]{36}`,
 		// GitLab tokens
 		`glpat-[0-9a-zA-Z\-_]{20,}`,
 		// AWS Access Key
@@ -88,7 +84,7 @@ func DefaultTokensPatterns() []string {
 		// SendGrid API key
 		`SG\.[0-9a-zA-Z\-_]{22}\.[0-9a-zA-Z\-_]{43}`,
 		// JWT token
-		`eyJhbGciOi[0-9a-zA-Z\-_]+\.[0-9a-zA-Z\-_]+\.[0-9a-zA-Z\-_]+`,
+		`\beyJ[0-9A-Za-z_-]{2,}\.[0-9A-Za-z_-]{10,}\.[0-9A-Za-z_-]{10,}\b`,
 		// Generic Bearer token
 		`[Bb]earer\s+[0-9a-zA-Z\-_.~+/]+=*`,
 		// Generic hex secrets (32, 40, 64 chars)

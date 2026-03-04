@@ -34,22 +34,37 @@ import (
 //   - length: byte length of the matched keyword/pattern, or -1.
 func argHasSensitive(data string, blocked []string, exceptions []string) (has bool, idx int, length int) {
 	default_additional := []string{":", "=", "is", "-"}
-	data = strings.ToLower(data)
+	data_lower := strings.ToLower(data)
 
 	for _, block := range pkg.DefaultSensBans() {
 		for _, add := range default_additional {
-			block_additional := block + add
 			if utils.Contains(exceptions, block) {
-				continue
+				break
 			}
-			idx = strings.Index(data, block_additional)
+			block_additional := block + add
+			block_spaced := block + " " + add
+
+			if utils.Contains(exceptions, block_additional) {
+				break
+			}
+
+			if utils.Contains(exceptions, block_spaced) {
+				break
+			}
+
+			idx = strings.Index(data_lower, block_additional)
 			if idx != -1 {
 				return true, idx, len(block)
 			}
 
-			trimmed := strings.TrimSpace(data)
+			idx = strings.Index(data_lower, block_spaced)
+			if idx != -1 {
+				return true, idx, len(block)
+			}
+
+			trimmed := strings.TrimSpace(data_lower)
 			idx = strings.Index(trimmed, block) // checking if end of string, possible sensitive data after that arg
-			if idx != -1 && idx+1+len(block) != len(trimmed) {
+			if idx != -1 && idx+1+len(block) == len(trimmed) {
 				return true, idx, len(block)
 			}
 		}
@@ -67,7 +82,7 @@ func argHasSensitive(data string, blocked []string, exceptions []string) (has bo
 		if utils.Contains(exceptions, block) {
 			continue
 		}
-		idx = strings.Index(data, block)
+		idx = strings.Index(data_lower, block)
 		if idx != -1 {
 			return true, idx, len(block)
 		}
