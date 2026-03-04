@@ -126,13 +126,7 @@ plugins:
 ### Шаг 3: Соберите кастомный golangci-lint
 
 ```bash
-golangci-lint custom -v
-```
-
-Флаг `-v` показывает подробный лог сборки. Бинарь появится в:
-```
-./bin/golangci-lint      # Linux/macOS
-./bin/golangci-lint.exe  # Windows
+make build-lint
 ```
 
 > ⚠️ Пересобирайте бинарь каждый раз после изменений в коде линтера.
@@ -195,16 +189,16 @@ linters:
 
 ```bash
 # Запуск кастомного бинаря
-./bin/golangci-lint run ./...
+./custom-gcl run ./...
 
 # Только loglint
-./bin/golangci-lint run --enable-only loglint ./...
+./custom-gcl run --enable-only loglint ./...
 
 # Подробный вывод
-./bin/golangci-lint run -v ./...
+./custom-gcl run -v ./...
 
 # Вывод в JSON (для CI/CD)
-./bin/golangci-lint run --output.formats.text.path stdout --output.json.path report.json ./...
+./custom-gcl run --output.formats.text.path stdout --output.json.path report.json ./...
 ```
 
 ---
@@ -397,35 +391,6 @@ jobs:
 
       - name: Run loglint
         run: ./bin/golangci-lint run ./...
-```
-
-### Makefile
-
-```makefile
-LINT_BIN := ./bin/golangci-lint
-
-.PHONY: build-lint
-build-lint:
-    golangci-lint custom -v
-
-.PHONY: lint
-lint: build-lint
-    $(LINT_BIN) run ./...
-
-.PHONY: lint-only
-lint-only:
-    $(LINT_BIN) run --enable-only loglint ./...
-
-.PHONY: test
-test:
-    go test -v ./...
-
-.PHONY: check
-check: test lint
-
-.PHONY: clean
-clean:
-    rm -f $(LINT_BIN) loglint.exe loglint
 ```
 
 ---
