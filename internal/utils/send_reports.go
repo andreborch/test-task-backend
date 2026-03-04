@@ -8,9 +8,8 @@ import (
 func SendReports(reports *[]pkg.Report, pass *analysis.Pass, category string) {
 	for _, rep := range *reports {
 		pass.Report(analysis.Diagnostic{
-			Pos:            rep.Pos,
-			Message:        rep.Message,
-			SuggestedFixes: nil,
+			Pos:     rep.Pos,
+			Message: rep.Message,
 		})
 	}
 }
