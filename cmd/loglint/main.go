@@ -18,5 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	singlechecker.Main(analyzers[0])
+	for _, analyzer := range analyzers {
+		singlechecker.Main(analyzer)
+	}
 }
