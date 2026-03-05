@@ -14,7 +14,7 @@ func DefaultSettings() LinterSettings {
 	return LinterSettings{
 		EnabledRules: []string{
 			"language",
-			"specialchars",
+			// "specialchars",
 			"lowercase",
 			"sensitive",
 		},

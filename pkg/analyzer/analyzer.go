@@ -68,10 +68,18 @@ func (plug *LogPlugin) run(pass *analysis.Pass) (any, error) {
 
 				reports := []pkg.Report{}
 
-				rules.LangIsCorrect(args, &reports, settings.Language)
-				rules.HasSensitiveData(args, &reports, settings.BlockedSensitive, settings.SensitiveExceptions)
-				rules.HasSpecialChar(args, &reports, settings.SpecCharsExceptions)
-				rules.CheckLowerCase(args, &reports)
+				for _, rule := range settings.EnabledRules {
+					switch rule {
+					case "language":
+						rules.LangIsCorrect(args, &reports, settings.Language)
+					case "sensitive":
+						rules.HasSensitiveData(args, &reports, settings.BlockedSensitive, settings.SensitiveExceptions)
+					case "specialchars":
+						rules.HasSpecialChar(args, &reports, settings.SpecCharsExceptions)
+					case "lowercase":
+						rules.CheckLowerCase(args, &reports)
+					}
+				}
 				utils.SendReports(&reports, pass, "log")
 			}
 			return true
