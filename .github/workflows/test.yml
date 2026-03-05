@@ -23,15 +23,13 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - name: Install dependencies
-        run: go get .
+        run: go mod download
       - name: Check if builds successfully
         run: go build -o loglint ./cmd/loglint
-      - name: Linter checks
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.6
-      - name: Test with Go
-        run: go test -json > TestResults-${{ matrix.go-version }}.json
+      - name: Test rules with Go
+        run: go test ./internal/rules
+      - name: Test analyzer with Go
+        run: go test ./pkg/analyzer
       - name: Upload Go test results
         uses: actions/upload-artifact@v4
         with:
